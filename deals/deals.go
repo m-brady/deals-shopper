@@ -3,7 +3,6 @@ package deals
 import (
 	"cloud.google.com/go/firestore"
 	"context"
-	"fmt"
 	"github.com/m-brady/go-flipp/flipp"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -26,7 +25,6 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 	for {
 		doc, err := documents.Next()
 		if err != nil {
-			fmt.Println(err)
 			break
 		}
 		var user FirestoreUser
@@ -52,8 +50,6 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 			}
 
 		}
-
-		fmt.Println(doc.Data())
 	}
 
 	for k, v := range m {
@@ -81,7 +77,6 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 		}
 
 	}
-	fmt.Println(userItems)
 	return userItems
 
 }
