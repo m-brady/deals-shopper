@@ -16,9 +16,9 @@ type UserItem struct {
 func Scan(firestoreClient *firestore.Client) []*UserItem {
 	documents := firestoreClient.Collection("users").Documents(context.Background())
 
-	m := map[searchKey][]string{}
+	searchRequests := make(map[searchKey]map[int]struct{})
 
-	interests := map[itemKey][]string{}
+	interests := make(map[itemKey][]string)
 
 	var userItems []*UserItem
 
@@ -33,30 +33,40 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 			continue
 		}
 
-		for item, merchants := range user.Items {
+		for _, item := range user.Items {
 			key := searchKey{
 				postalCode: user.PostalCode,
 				query:      item,
 			}
-			for _, merchant := range merchants {
-				merchantString := strconv.Itoa(merchant)
-				m[key] = append(m[key], merchantString)
+			if searchRequests[key] == nil {
+				searchRequests[key] = make(map[int]struct{})
+			}
+			for _, m := range user.Merchants {
+				searchRequests[key][m] = struct{}{}
+
 				ik := itemKey{
 					postalCode: user.PostalCode,
 					query:      item,
-					merchant:   merchant,
+					merchant:   m,
 				}
 				interests[ik] = append(interests[ik], user.DiscordUserID)
+
 			}
 
 		}
 	}
 
-	for k, v := range m {
+	for k, v := range searchRequests {
+
+		merchants := make([]string, len(v))
+		for m, _ := range v {
+			merchants = append(merchants, strconv.Itoa(m))
+		}
+
 		resp, err := flipp.Search(flipp.SearchParams{
 			PostalCode: k.postalCode,
 			Query:      k.query,
-			Merchants:  v,
+			Merchants:  merchants,
 		})
 		if err != nil {
 			log.Errorf("Error searching for %v %v. %v", k, v, err)
