@@ -30,8 +30,11 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 		var user FirestoreUser
 		err = doc.DataTo(&user)
 		if err != nil {
+			log.Error(err)
 			continue
 		}
+
+		log.Infof("Looking at user %v", user)
 
 		for _, item := range user.Items {
 			key := searchKey{
