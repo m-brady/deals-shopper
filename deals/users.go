@@ -13,13 +13,13 @@ type UserMessage struct {
 	PostalCode    string `json:"postal_code"`
 	Item          string `json:"item"`
 	Merchant      int    `json:"merchant"`
-	Remove        bool   `json:"remove"`
 }
 
 type FirestoreUser struct {
 	DiscordUserID string
 	PostalCode    string
-	Items         map[string][]int
+	Merchants     []int
+	Items         []string
 }
 
 func UpdateUser(firestoreClient *firestore.Client, userMessage UserMessage) {
@@ -31,9 +31,15 @@ func UpdateUser(firestoreClient *firestore.Client, userMessage UserMessage) {
 			DiscordUserID: userMessage.DiscordUserID,
 			PostalCode:    userMessage.PostalCode,
 		}
-		if userMessage.Item != "" && userMessage.Merchant != 0 {
-			firestoreUser.Items = map[string][]int{userMessage.Item: {userMessage.Merchant}}
+
+		if userMessage.Merchant == 0 && userMessage.Item == "" {
+			log.Infof("Empty usermessage %v", userMessage)
+			return
 		}
+
+		firestoreUser.Items = []string{userMessage.Item}
+		firestoreUser.Merchants = []int{userMessage.Merchant}
+
 		_, err := ref.Create(context.Background(), firestoreUser)
 		if err != nil {
 			log.Error("Error creating doc", firestoreUser, err)
@@ -46,12 +52,18 @@ func UpdateUser(firestoreClient *firestore.Client, userMessage UserMessage) {
 			log.Error("Error parsing doc", doc, err)
 			return
 		}
-		if firestoreUser.Items == nil {
-			firestoreUser.Items = make(map[string][]int)
+
+		var updates []firestore.Update
+
+		if userMessage.Merchant != 0 {
+			updates = append(updates, firestore.Update{Path: "Merchants", Value: appendMerchant(firestoreUser.Merchants, userMessage.Merchant)})
 		}
-		merchants := firestoreUser.Items[userMessage.Item]
-		firestoreUser.Items[userMessage.Item] = appendUnique(merchants, userMessage.Merchant)
-		_, err = ref.Update(context.Background(), []firestore.Update{{Path: "items", Value: firestoreUser.Items}})
+
+		if userMessage.Item != "" {
+			updates = append(updates, firestore.Update{Path: "Items", Value: appendItem(firestoreUser.Items, userMessage.Item)})
+		}
+
+		_, err = ref.Update(context.Background(), updates)
 		if err != nil {
 			log.Error("Error updating doc", firestoreUser.Items, err)
 			return
@@ -63,12 +75,22 @@ func UpdateUser(firestoreClient *firestore.Client, userMessage UserMessage) {
 	log.Info("Successfully processed message", userMessage)
 }
 
-func appendUnique(guys []int, guy int) []int {
+func appendMerchant(merchants []int, merchant int) []int {
 
-	for _, g := range guys {
-		if guy == g {
-			return guys
+	for _, m := range merchants {
+		if merchant == m {
+			return merchants
 		}
 	}
-	return append(guys, guy)
+	return append(merchants, merchant)
+}
+
+func appendItem(items []string, item string) []string {
+
+	for _, i := range items {
+		if item == i {
+			return items
+		}
+	}
+	return append(items, item)
 }
