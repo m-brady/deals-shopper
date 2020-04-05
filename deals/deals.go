@@ -60,6 +60,9 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 		}
 	}
 
+	log.Info(searchRequests)
+	log.Info(interests)
+
 	for k, v := range searchRequests {
 
 		merchants := make([]string, len(v))
