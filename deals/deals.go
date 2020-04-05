@@ -65,7 +65,7 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 
 	for k, v := range searchRequests {
 
-		merchants := make([]string, len(v))
+		var merchants []string
 		for m := range v {
 			merchants = append(merchants, strconv.Itoa(m))
 		}
