@@ -75,11 +75,15 @@ func Scan(firestoreClient *firestore.Client) []*UserItem {
 			Query:      k.query,
 			Merchants:  merchants,
 		})
+
 		if err != nil {
 			log.Errorf("Error searching for %v %v. %v", k, v, err)
 			continue
 		}
+		log.Info(resp.ItemDetails)
+
 		for _, item := range resp.ItemDetails {
+			log.Info(item)
 			users := interests[itemKey{
 				postalCode: k.postalCode,
 				query:      k.query,
